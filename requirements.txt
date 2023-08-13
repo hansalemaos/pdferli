@@ -1,0 +1,6 @@
+a_pandas_ex_less_memory_more_speed
+flatten_any_dict_iterable_or_whatsoever
+pandas
+pdfminer.six
+pikepdf
+touchtouch
