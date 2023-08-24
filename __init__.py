@@ -14,24 +14,6 @@ from flatten_any_dict_iterable_or_whatsoever import fla_tu
 
 text = b""
 
-
-def password_gen(chars, minlen=None, maxlen=None):
-    chars = list(map(str, chars))
-    if not minlen:
-        minlen = 1
-    if not maxlen:
-        maxlen = len(chars) + 1
-    for no in range(minlen, maxlen, 1):
-        for charlst in itertools.permutations(chars, no):
-            yield text,"".join(charlst)
-
-
-def read_zipfile(file):
-    with open(file, mode="rb") as f:
-        data = f.read()
-    return data
-
-
 def put_password_encryption(inputfile, outputfile, password):
     r"""
     Encrypt a PDF file using a specified password.
@@ -72,15 +54,36 @@ def remove_restrictions(inputfile, outputfile, **kwargs):
 
 
 def get_password_pdf(pwd):
-    text,pwd=pwd
-    isright = False
-    try:
-        (next(extract_pages(text, password=pwd)))
-        isright = True
-    except Exception as fe:
-        pass
-    return pwd, isright
 
+    isright = False
+    pwdl=''.join(list(pwd))
+    try:
+        next(extract_pages(text, password=pwdl))
+        isright = True
+    except Exception:
+        pass
+    return pwdl, isright
+
+
+
+def password_gen(chars,minlen=None,maxlen=None):
+    chars=list(map(str,chars))
+    if not minlen:
+        minlen=1
+    if not maxlen:
+        maxlen = len(chars)+1
+    for no in range(minlen, maxlen, 1):
+        for charlst in (itertools.product(chars, repeat=no)):
+            yield charlst
+
+def initpool(arr):
+    global text
+    text = arr
+
+def read_zipfile(file):
+    with open(file, mode="rb") as f:
+        data = f.read()
+    return data
 
 def crack_password(file, chars, processes=4, minlen=None, maxlen=None, verbose=True):
     """
@@ -97,12 +100,11 @@ def crack_password(file, chars, processes=4, minlen=None, maxlen=None, verbose=T
     Returns:
         str: Cracked password if successful, None if not successful
     """
-    global text
     data = read_zipfile(file)
     text = io.BytesIO(data)
     gener = password_gen(chars=chars, minlen=minlen, maxlen=maxlen)
     gotpass = False
-    with multiprocessing.Pool(processes=processes) as pool:
+    with multiprocessing.Pool(processes=processes, initializer=initpool, initargs=(text,)) as pool:
         processed_results = pool.imap_unordered(get_password_pdf, gener)
         for ini, pr in enumerate(processed_results):
             if verbose:
